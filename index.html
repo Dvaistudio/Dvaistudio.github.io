@@ -1,12 +1,2141 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Agente de Revision</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>UNDERMART KNIGHT 2.5D - Supermarket Simulator</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ut-border: 4px solid #ffffff;
+    --sk-gold: #fbbf24;
+  }
+  * {
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-user-select: none;
+    image-rendering: pixelated;
+  }
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: #090a0f;
+    color: #ffffff;
+    font-family: 'Press Start 2P', monospace;
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  #game-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    max-width: 1120px;
+    max-height: 760px;
+    display: flex;
+    flex-direction: column;
+    border: 4px solid #fff;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.9), 0 0 15px rgba(255, 255, 255, 0.15);
+    background: #12131a;
+  }
+  canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    background: #161824;
+    cursor: crosshair;
+  }
+  .ut-box {
+    background: #000000;
+    border: 4px solid #ffffff;
+    box-shadow: inset 0 0 0 2px #000, 4px 4px 0px rgba(0,0,0,0.7);
+  }
+  .ut-btn {
+    background: #000000;
+    border: 3px solid #ffffff;
+    color: #ffffff;
+    padding: 8px 12px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    cursor: pointer;
+    transition: transform 0.08s, background-color 0.1s, color 0.1s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .ut-btn:hover:not(:disabled) {
+    background: #ffff00;
+    color: #000000;
+    border-color: #ffff00;
+    transform: translateY(-2px);
+  }
+  .ut-btn:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+  .ut-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .ut-btn-orange {
+    border-color: #ff9900;
+    color: #ff9900;
+  }
+  .ut-btn-orange:hover:not(:disabled) {
+    background: #ff9900;
+    color: #000;
+  }
+  .ut-btn-green {
+    border-color: #22c55e;
+    color: #22c55e;
+  }
+  .ut-btn-green:hover:not(:disabled) {
+    background: #22c55e;
+    color: #000;
+  }
+  /* Scrollbar retro */
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background: #000; border-left: 2px solid #fff; }
+  ::-webkit-scrollbar-thumb { background: #fff; }
+  @media (max-width: 768px) {
+    .hud-text { font-size: 9px !important; }
+    .ut-btn { font-size: 8px; padding: 6px 8px; }
+  }
+</style>
 </head>
 <body>
-    <h1>Página válida para HTTP-Referer</h1>
-    <p>Esta página existe solo para que OpenRouter acepte requests desde n8n local.</p>
-    <p>URL: https://dvaistudio.github.io/</p>
+
+<div id="game-wrapper">
+  <!-- TOP HUD (Undertale + Soul Knight Status Bar) -->
+  <div class="w-full bg-black border-b-4 border-white px-3 py-2 flex flex-wrap items-center justify-between gap-2 z-20">
+    <!-- Left Stats -->
+    <div class="flex items-center gap-3 flex-wrap">
+      <div class="flex items-center gap-2 bg-zinc-900 border-2 border-yellow-400 px-2.5 py-1">
+        <span class="text-yellow-400 text-xs">G</span>
+        <span id="hud-money" class="text-yellow-300 text-xs sm:text-sm font-bold">$80</span>
+      </div>
+      <div class="flex items-center gap-2 bg-zinc-900 border-2 border-cyan-400 px-2.5 py-1">
+        <span id="hud-day" class="text-cyan-300 text-[10px] sm:text-xs">DÍA 1</span>
+        <span class="text-zinc-500">|</span>
+        <span id="hud-time" class="text-white text-[10px] sm:text-xs">08:00</span>
+      </div>
+      <button id="btn-toggle-store" onclick="window.toggleStoreState()" class="ut-btn border-2 px-2 py-1 text-[10px]">
+        <span id="hud-store-dot" class="w-2.5 h-2.5 inline-block bg-red-500"></span>
+        <span id="hud-store-status">CERRADA</span>
+      </button>
+      <div class="hidden md:flex items-center gap-1.5 bg-zinc-900 border-2 border-purple-400 px-2 py-1">
+        <span class="text-purple-300 text-[10px]">REP:</span>
+        <span id="hud-rep" class="text-yellow-300 text-[10px]">★★★☆☆</span>
+      </div>
+    </div>
+
+    <!-- Center Carrying Status -->
+    <div id="hud-carry-box" class="flex items-center gap-2 bg-zinc-950 border-2 border-zinc-600 px-3 py-1">
+      <span class="text-[10px] text-zinc-400">MANOS:</span>
+      <span id="hud-carry-text" class="text-[10px] text-emerald-400">LIBRES</span>
+    </div>
+
+    <!-- Right Quick Buttons -->
+    <div class="flex items-center gap-2">
+      <button onclick="window.openPCModal()" class="ut-btn ut-btn-orange">
+        <span>💻 PC [TAB]</span>
+      </button>
+      <button onclick="window.toggleAudioMute()" id="btn-mute" class="ut-btn px-2" title="Sonido 8-Bit">
+        🔊
+      </button>
+    </div>
+  </div>
+
+  <!-- MAIN CANVAS AREA -->
+  <div class="relative flex-1 w-full h-full overflow-hidden">
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- FLOATING CONTEXT PROMPT -->
+    <div id="action-prompt" class="hidden absolute left-1/2 -translate-x-1/2 bottom-20 pointer-events-none z-10 ut-box px-4 py-2 text-center">
+      <div id="action-prompt-text" class="text-[10px] sm:text-xs text-yellow-300 tracking-wider">[E] INTERACTUAR</div>
+    </div>
+
+    <!-- UNDERTALE DIALOG / TICKER BAR AT BOTTOM -->
+    <div class="absolute bottom-2 left-2 right-2 pointer-events-none flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 z-10">
+      <div class="ut-box px-3 py-2 flex-1 flex items-center gap-3 bg-black/95">
+        <div id="dialog-portrait" class="w-8 h-8 border-2 border-white flex items-center justify-center bg-zinc-900 text-lg shrink-0">
+          💀
+        </div>
+        <div class="flex-1 overflow-hidden">
+          <p id="ut-dialog-text" class="text-[10px] sm:text-xs text-white leading-relaxed truncate">
+            * ¡Bienvenido a UNDERMART! Recoge las cajas de la acera [E] y llena los estantes.
+          </p>
+        </div>
+      </div>
+
+      <!-- Controls Legend -->
+      <div class="ut-box px-3 py-2 bg-black/95 hidden lg:flex items-center gap-3 text-[9px] text-zinc-300 shrink-0">
+        <span><b class="text-yellow-300">WASD</b> Mover</span>
+        <span><b class="text-cyan-300">SHIFT</b> Dash</span>
+        <span><b class="text-emerald-300">E/ESPACIO</b> Usar</span>
+        <span><b class="text-red-400">Q</b> Soltar</span>
+        <span><b class="text-orange-300">TAB</b> PC</span>
+      </div>
+    </div>
+
+    <!-- MOBILE TOUCH CONTROLS -->
+    <div id="touch-controls" class="lg:hidden absolute inset-x-3 bottom-14 flex justify-between items-end pointer-events-none z-20">
+      <!-- D-Pad -->
+      <div class="grid grid-cols-3 gap-1 w-32 h-32 pointer-events-auto opacity-85">
+        <div></div>
+        <button data-dir="up" class="touch-dir ut-btn !p-0 flex items-center justify-center text-sm">▲</button>
+        <div></div>
+        <button data-dir="left" class="touch-dir ut-btn !p-0 flex items-center justify-center text-sm">◀</button>
+        <div class="bg-black/60 border border-zinc-700"></div>
+        <button data-dir="right" class="touch-dir ut-btn !p-0 flex items-center justify-center text-sm">▶</button>
+        <div></div>
+        <button data-dir="down" class="touch-dir ut-btn !p-0 flex items-center justify-center text-sm">▼</button>
+        <div></div>
+      </div>
+      <!-- Action Buttons -->
+      <div class="flex flex-col gap-2 pointer-events-auto opacity-90">
+        <div class="flex gap-2">
+          <button onclick="window.triggerDropBox()" class="ut-btn border-red-400 text-red-300 px-3 py-3 text-xs">SOLTAR [Q]</button>
+          <button onclick="window.triggerDash()" class="ut-btn border-cyan-400 text-cyan-300 px-3 py-3 text-xs">DASH</button>
+        </div>
+        <button onclick="window.triggerInteract()" class="ut-btn ut-btn-green py-4 px-5 text-xs font-bold">USAR / ESCANEAR [E]</button>
+      </div>
+    </div>
+
+    <!-- PC TERMINAL MODAL (Undertale / Soul Knight Shop UI) -->
+    <div id="pc-modal" class="hidden absolute inset-0 bg-black/85 z-30 flex items-center justify-center p-3 sm:p-6">
+      <div class="ut-box w-full max-w-3xl max-h-full flex flex-col bg-black overflow-hidden">
+        <!-- Modal Header -->
+        <div class="border-b-4 border-white px-4 py-3 flex items-center justify-between bg-zinc-950">
+          <div class="flex items-center gap-3">
+            <span class="text-green-400 text-base">💻</span>
+            <h2 class="text-xs sm:text-sm text-green-400 tracking-wider">UNDERNET OS v2.5 - TERMINAL DE GESTIÓN</h2>
+          </div>
+          <button onclick="window.closePCModal()" class="ut-btn border-red-500 text-red-400 px-2.5 py-1">ESC ✕</button>
+        </div>
+
+        <!-- Tabs -->
+        <div class="flex border-b-4 border-white bg-zinc-900">
+          <button id="tab-btn-supply" onclick="window.switchPCTab('supply')" class="flex-1 py-2.5 text-[10px] sm:text-xs border-r-2 border-white bg-yellow-400 text-black font-bold">
+            📦 PEDIR CAJAS (STOCK)
+          </button>
+          <button id="tab-btn-prices" onclick="window.switchPCTab('prices')" class="flex-1 py-2.5 text-[10px] sm:text-xs border-r-2 border-white text-white hover:bg-zinc-800">
+            🏷️ AJUSTAR PRECIOS
+          </button>
+          <button id="tab-btn-upgrades" onclick="window.switchPCTab('upgrades')" class="flex-1 py-2.5 text-[10px] sm:text-xs text-white hover:bg-zinc-800">
+            ⚡ MEJORAS & BOTS
+          </button>
+        </div>
+
+        <!-- Modal Body -->
+        <div id="pc-modal-content" class="p-4 overflow-y-auto flex-1 space-y-3 text-xs">
+          <!-- Dynamically populated -->
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="border-t-4 border-white px-4 py-2.5 bg-zinc-950 flex flex-wrap items-center justify-between gap-2 text-[10px]">
+          <span class="text-zinc-400">* Las cajas compradas aparecen en la zona de ENTREGA afuera.</span>
+          <span class="text-yellow-300 font-bold">SALDO: <span id="pc-footer-money">$80</span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- END OF DAY SUMMARY MODAL -->
+    <div id="day-modal" class="hidden absolute inset-0 bg-black/90 z-40 flex items-center justify-center p-4">
+      <div class="ut-box w-full max-w-md p-5 bg-black text-center space-y-4">
+        <div class="text-yellow-400 text-sm sm:text-base tracking-widest border-b-2 border-white pb-3">
+          ★ RESUMEN DEL DÍA <span id="summary-day-num">1</span> ★
+        </div>
+        <div class="space-y-2.5 text-left text-[11px] bg-zinc-950 p-3 border-2 border-zinc-700">
+          <div class="flex justify-between">
+            <span class="text-zinc-400">Clientes Atendidos:</span>
+            <span id="sum-customers" class="text-emerald-400">0</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-zinc-400">Clientes Enojados:</span>
+            <span id="sum-angry" class="text-red-400">0</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-zinc-400">Ingresos por Ventas:</span>
+            <span id="sum-revenue" class="text-yellow-300">+$0</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-zinc-400">Gastos en Stock/Mejoras:</span>
+            <span id="sum-spent" class="text-orange-400">-$0</span>
+          </div>
+          <div class="border-t border-zinc-700 pt-2 flex justify-between font-bold text-xs">
+            <span class="text-white">BALANCE FINAL:</span>
+            <span id="sum-total" class="text-yellow-400">$80</span>
+          </div>
+        </div>
+        <p id="sum-quote" class="text-[10px] text-cyan-300 italic">
+          * "Llenar estantes te llena de DETERMINACIÓN."
+        </p>
+        <button onclick="window.startNextDay()" class="ut-btn ut-btn-green w-full py-3 text-xs">
+          ☀ INICIAR SIGUIENTE DÍA (08:00 AM)
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ============================================================================
+  // 1. RETRO 8-BIT SYNTHESIZER (Undertale & Soul Knight WebAudio SFX)
+  // ============================================================================
+  class RetroSound {
+    constructor() {
+      this.ctx = null;
+      this.muted = false;
+    }
+    init() {
+      if (!this.ctx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) this.ctx = new AudioCtx();
+      }
+      if (this.ctx && this.ctx.state === 'suspended') {
+        this.ctx.resume();
+      }
+    }
+    tone(freq, duration = 0.08, type = 'square', vol = 0.12, slide = 0) {
+      if (this.muted) return;
+      try {
+        this.init();
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type;
+        const now = this.ctx.currentTime;
+        osc.frequency.setValueAtTime(freq, now);
+        if (slide !== 0) {
+          osc.frequency.linearRampToValueAtTime(Math.max(40, freq + slide), now + duration);
+        }
+        gain.gain.setValueAtTime(vol, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + duration);
+      } catch (e) {}
+    }
+    step() { this.tone(130 + Math.random() * 35, 0.035, 'triangle', 0.06, -30); }
+    dash() {
+      this.tone(320, 0.08, 'sawtooth', 0.12, 260);
+      setTimeout(() => this.tone(520, 0.09, 'square', 0.08, -180), 40);
+    }
+    pickup() {
+      this.tone(280, 0.06, 'square', 0.12, 120);
+      setTimeout(() => this.tone(420, 0.08, 'square', 0.12, 160), 50);
+    }
+    stock() {
+      this.tone(440, 0.05, 'square', 0.11, 180);
+    }
+    drop() {
+      this.tone(220, 0.08, 'triangle', 0.14, -110);
+    }
+    cash() {
+      this.tone(587.33, 0.06, 'square', 0.14);
+      setTimeout(() => this.tone(880, 0.14, 'square', 0.15, 60), 65);
+      setTimeout(() => this.tone(1174.66, 0.18, 'triangle', 0.14), 130);
+    }
+    error() {
+      this.tone(150, 0.12, 'sawtooth', 0.14, -40);
+      setTimeout(() => this.tone(115, 0.15, 'sawtooth', 0.14, -20), 90);
+    }
+    blip() {
+      this.tone(490 + Math.random() * 90, 0.03, 'square', 0.06);
+    }
+    fanfare() {
+      const notes = [440, 554.37, 659.25, 880];
+      notes.forEach((n, i) => {
+        setTimeout(() => this.tone(n, 0.14, 'square', 0.13), i * 95);
+      });
+    }
+  }
+  const sfx = new RetroSound();
+
+  // ============================================================================
+  // 2. GAME CATALOG: PRODUCTS, ARCHETYPES & UPGRADES
+  // ============================================================================
+  const PRODUCTS = [
+    {
+      id: 'potion',
+      name: 'Poción HP (Soda)',
+      short: 'POCIÓN HP',
+      boxCost: 10,
+      boxCount: 4,
+      basePrice: 5,
+      priceTier: 0, // -1: Oferta, 0: Normal, 1: Caro
+      colorPrimary: '#ef4444',
+      colorSecondary: '#fca5a5',
+      bottleNeck: '#fef08a',
+      icon: '🧪'
+    },
+    {
+      id: 'cereal',
+      name: 'Cereal Monstruo',
+      short: 'M-CEREAL',
+      boxCost: 16,
+      boxCount: 4,
+      basePrice: 8,
+      priceTier: 0,
+      colorPrimary: '#f59e0b',
+      colorSecondary: '#fde047',
+      bottleNeck: '#7c2d12',
+      icon: '🥣'
+    },
+    {
+      id: 'milk',
+      name: 'Leche de Maná',
+      short: 'MANÁ MILK',
+      boxCost: 24,
+      boxCount: 4,
+      basePrice: 12,
+      priceTier: 0,
+      colorPrimary: '#3b82f6',
+      colorSecondary: '#93c5fd',
+      bottleNeck: '#ffffff',
+      icon: '🥛'
+    },
+    {
+      id: 'ramen',
+      name: 'Ramen del Alma',
+      short: 'SOUL RAMEN',
+      boxCost: 32,
+      boxCount: 4,
+      basePrice: 15,
+      priceTier: 0,
+      colorPrimary: '#a855f7',
+      colorSecondary: '#e9d5ff',
+      bottleNeck: '#facc15',
+      icon: '🍜'
+    }
+  ];
+
+  function getProductSellPrice(prod) {
+    if (prod.priceTier === -1) return Math.max(1, Math.round(prod.basePrice * 0.8));
+    if (prod.priceTier === 1) return Math.round(prod.basePrice * 1.35);
+    return prod.basePrice;
+  }
+
+  const CUSTOMER_ARCHETYPES = [
+    {
+      type: 'skeleton',
+      name: 'Sans-ito',
+      emoji: '💀',
+      bodyColor: '#3b82f6',
+      headColor: '#f8fafc',
+      eyeColor: '#38bdf8',
+      quotes: [
+        '¡heya! ¿tienes kétchup o pociones rojas?',
+        'este supermercado tiene un "hueso" surtido.',
+        'pagaría más, pero estoy en los huesos.'
+      ]
+    },
+    {
+      type: 'knight',
+      name: 'Caballero Soul',
+      emoji: '🛡️',
+      bodyColor: '#64748b',
+      headColor: '#94a3b8',
+      eyeColor: '#facc15',
+      quotes: [
+        '¡Necesito pociones antes de entrar a la mazmorra!',
+        '¡Buen precio! Mi energía estaba en 0.',
+        '¿Aceptan gemas del alma o solo efectivo?'
+      ]
+    },
+    {
+      type: 'slime',
+      name: 'Limito Verde',
+      emoji: '🟢',
+      bodyColor: '#10b981',
+      headColor: '#34d399',
+      eyeColor: '#064e3b',
+      quotes: [
+        '*Bloop bloop* ¡El Cereal Monstruo es delicioso!',
+        '¡Cuidado donde pisas, dejé un rastro brillante!',
+        '*Sonidos felices de gelatina compradora*'
+      ]
+    },
+    {
+      type: 'mage',
+      name: 'Mago Arcano',
+      emoji: '🧙',
+      bodyColor: '#6d28d9',
+      headColor: '#fbbf24',
+      eyeColor: '#f472b6',
+      quotes: [
+        'La Leche de Maná restaura mis hechizos.',
+        '¡Por las barbas de Asgore, qué buena tienda!',
+        'Un Ramen del Alma para estudiar grimorios.'
+      ]
+    },
+    {
+      type: 'robot',
+      name: 'Mett-Bot 9000',
+      emoji: '🤖',
+      bodyColor: '#ec4899',
+      headColor: '#cbd5e1',
+      eyeColor: '#22d3ee',
+      quotes: [
+        '¡OH SÍ CARIÑO! ¡COMPRAS CON GLAMOUR!',
+        'BEEP BOOP. ESCANEANDO OFERTAS DEL DÍA.',
+        'LAS AUDIENCIAS SUBEN CUANDO HAY STOCK.'
+      ]
+    }
+  ];
+
+  // ============================================================================
+  // 3. WORLD COORDINATES & STATE (Virtual Resolution 960 x 560)
+  // ============================================================================
+  const VW = 960;
+  const VH = 560;
+
+  // Store indoor bounds: X from 210 to 920, Y from 68 to 510
+  // Curb / Delivery sidewalk: X from 18 to 195, Y from 68 to 510
+  // Doorway gap: X around 202, Y from 250 to 360
+
+  const state = {
+    money: 80,
+    day: 1,
+    timeMinutes: 8 * 60, // 8:00 AM (480) to 21:00 PM (1260)
+    storeOpen: false,
+    reputation: 3.5,
+    pcOpen: false,
+    pcTab: 'supply',
+    daySummaryOpen: false,
+
+    // Daily stats
+    dailyServed: 0,
+    dailyAngry: 0,
+    dailyRevenue: 0,
+    dailySpent: 0,
+
+    // Upgrades
+    upgrades: {
+      cashierBot: false,
+      restockImp: false,
+      hermesBoots: false,
+      neonSign: false
+    },
+
+    // Player entity
+    player: {
+      x: 340,
+      y: 300,
+      vx: 0,
+      vy: 0,
+      radius: 15,
+      speed: 195,
+      facing: 1, // 1 right, -1 left
+      walkFrame: 0,
+      dashTimer: 0,
+      dashCooldown: 0,
+      carrying: null, // { prodIndex, count }
+      afterimages: []
+    },
+
+    // Interactive fixtures
+    shelves: [
+      // Top aisle
+      { id: 0, prodIndex: 0, x: 380, y: 150, w: 96, h: 42, count: 4, max: 8 },
+      { id: 1, prodIndex: 1, x: 540, y: 150, w: 96, h: 42, count: 2, max: 8 },
+      { id: 2, prodIndex: 2, x: 700, y: 150, w: 96, h: 42, count: 0, max: 8 },
+      // Middle-bottom aisle
+      { id: 3, prodIndex: 3, x: 540, y: 310, w: 96, h: 42, count: 0, max: 8 },
+      { id: 4, prodIndex: 0, x: 700, y: 310, w: 96, h: 42, count: 0, max: 8 },
+      { id: 5, prodIndex: 1, x: 700, y: 445, w: 96, h: 42, count: 0, max: 8 }
+    ],
+
+    // Checkout Counter
+    checkout: {
+      x: 345,
+      y: 430,
+      w: 112,
+      h: 48,
+      cashierSpotX: 345,
+      cashierSpotY: 482,
+      scanProgress: 0,
+      botTimer: 0
+    },
+
+    // PC Desk in upper-right corner
+    pcDesk: {
+      x: 855,
+      y: 120,
+      w: 68,
+      h: 44
+    },
+
+    // Open/Closed Pedestal near door
+    signPost: {
+      x: 248,
+      y: 220,
+      w: 36,
+      h: 40
+    },
+
+    // Trash / Recycling Bin
+    trashCan: {
+      x: 252,
+      y: 465,
+      w: 36,
+      h: 36
+    },
+
+    // Restock Imp Helper (AI)
+    imp: {
+      x: 840,
+      y: 220,
+      carrying: null,
+      targetType: null,
+      walkFrame: 0,
+      facing: -1
+    },
+
+    // Crates on sidewalk/floor
+    crates: [],
+    // Customers in world
+    customers: [],
+    customerSpawnTimer: 2.0,
+
+    // Juice: Particles & Floating Texts
+    particles: [],
+    floatingTexts: []
+  };
+
+  // Spawn 2 initial starter crates on the sidewalk so the player can immediately stock!
+  function spawnCrateOnCurb(prodIndex, count = 4) {
+    const idx = state.crates.length;
+    const col = idx % 2;
+    const row = Math.floor(idx / 2) % 6;
+    const cx = 68 + col * 56 + (Math.random() * 8 - 4);
+    const cy = 155 + row * 56 + (Math.random() * 8 - 4);
+    state.crates.push({
+      id: Date.now() + Math.random(),
+      prodIndex,
+      count,
+      x: cx,
+      y: cy,
+      bounce: 1.0
+    });
+    spawnBurst(cx, cy, PRODUCTS[prodIndex].colorPrimary, 10);
+  }
+
+  // Initial starter crates
+  spawnCrateOnCurb(0, 4); // HP Potion box
+  spawnCrateOnCurb(1, 4); // Monster Cereal box
+
+  // ============================================================================
+  // 4. DIALOG & FLOATING JUICE HELPERS
+  // ============================================================================
+  let dialogTimeout = null;
+  function setDialog(text, emoji = '💀') {
+    const el = document.getElementById('ut-dialog-text');
+    const port = document.getElementById('dialog-portrait');
+    if (!el || !port) return;
+    port.textContent = emoji;
+    el.textContent = '* ' + text;
+    sfx.blip();
+    if (dialogTimeout) clearTimeout(dialogTimeout);
+    dialogTimeout = setTimeout(() => {
+      // Keep last message visible
+    }, 5000);
+  }
+
+  function addFloatingText(x, y, text, color = '#fde047', scale = 1) {
+    state.floatingTexts.push({
+      x,
+      y,
+      text,
+      color,
+      scale,
+      vy: -42,
+      life: 1.15,
+      maxLife: 1.15
+    });
+  }
+
+  function spawnBurst(x, y, color = '#ffffff', count = 12) {
+    for (let i = 0; i < count; i++) {
+      const ang = Math.random() * Math.PI * 2;
+      const spd = 30 + Math.random() * 90;
+      state.particles.push({
+        x,
+        y,
+        vx: Math.cos(ang) * spd,
+        vy: Math.sin(ang) * spd - 20,
+        size: 3 + Math.floor(Math.random() * 4),
+        color,
+        life: 0.35 + Math.random() * 0.35,
+        maxLife: 0.7
+      });
+    }
+  }
+
+  // ============================================================================
+  // 5. INPUT HANDLING (Keyboard, Mouse Click on Canvas, Touch)
+  // ============================================================================
+  const keys = {};
+  const touchDirs = { up: false, down: false, left: false, right: false };
+
+  window.addEventListener('keydown', (e) => {
+    const code = e.code;
+    keys[code] = true;
+
+    if (code === 'Tab' || code === 'KeyC') {
+      e.preventDefault();
+      if (!state.daySummaryOpen) {
+        if (state.pcOpen) window.closePCModal();
+        else window.openPCModal();
+      }
+    } else if (code === 'Escape') {
+      if (state.pcOpen) window.closePCModal();
+    } else if ((code === 'KeyE' || code === 'Space') && !state.pcOpen && !state.daySummaryOpen) {
+      e.preventDefault();
+      triggerInteract();
+    } else if ((code === 'ShiftLeft' || code === 'ShiftRight') && !state.pcOpen && !state.daySummaryOpen) {
+      e.preventDefault();
+      triggerDash();
+    } else if (code === 'KeyQ' && !state.pcOpen && !state.daySummaryOpen) {
+      e.preventDefault();
+      triggerDropBox();
+    }
+  });
+
+  window.addEventListener('keyup', (e) => {
+    keys[e.code] = false;
+  });
+
+  // Touch directional buttons
+  document.querySelectorAll('.touch-dir').forEach(btn => {
+    const dir = btn.getAttribute('data-dir');
+    const start = (ev) => { ev.preventDefault(); touchDirs[dir] = true; };
+    const end = (ev) => { ev.preventDefault(); touchDirs[dir] = false; };
+    btn.addEventListener('touchstart', start, { passive: false });
+    btn.addEventListener('touchend', end, { passive: false });
+    btn.addEventListener('mousedown', start);
+    btn.addEventListener('mouseup', end);
+    btn.addEventListener('mouseleave', end);
+  });
+
+  // ============================================================================
+  // 6. PLAYER INTERACTIONS (Pick Up, Stock, Checkout, Sign, PC, Trash)
+  // ============================================================================
+  function getNearestInteraction() {
+    const p = state.player;
+    const candidates = [];
+
+    // 1. Check Crates on Ground
+    state.crates.forEach((c, idx) => {
+      const d = Math.hypot(p.x - c.x, p.y - c.y);
+      if (d < 56) {
+        const prod = PRODUCTS[c.prodIndex];
+        candidates.push({
+          dist: d,
+          type: 'crate',
+          index: idx,
+          obj: c,
+          label: p.carrying
+            ? `[Q] Soltar caja actual primero`
+            : `[E] Recoger Caja de ${prod.short} (${c.count})`
+        });
+      }
+    });
+
+    // 2. Check Shelves
+    state.shelves.forEach(s => {
+      const d = Math.hypot(p.x - s.x, p.y - (s.y + 12));
+      if (d < 74) {
+        const prod = PRODUCTS[s.prodIndex];
+        let label = `${prod.icon} ${prod.short} (${s.count}/${s.max}) - $${getProductSellPrice(prod)}`;
+        if (p.carrying) {
+          if (p.carrying.prodIndex === s.prodIndex && s.count < s.max) {
+            label = `[E] Reponer ${prod.short} (${s.count}/${s.max})`;
+          } else if (s.count === 0 && p.carrying.count > 0) {
+            label = `[E] Cambiar estante a ${PRODUCTS[p.carrying.prodIndex].short} y Reponer`;
+          } else if (p.carrying.prodIndex !== s.prodIndex) {
+            label = `Estante de ${prod.short} (Llevas ${PRODUCTS[p.carrying.prodIndex].short})`;
+          } else {
+            label = `¡Estante lleno! (${s.count}/${s.max})`;
+          }
+        } else {
+          label = `[E] Cambiar precio ${prod.short} ($${getProductSellPrice(prod)})`;
+        }
+        candidates.push({ dist: d, type: 'shelf', obj: s, label });
+      }
+    });
+
+    // 3. Check Checkout Counter
+    const chk = state.checkout;
+    const dChk = Math.hypot(p.x - chk.x, p.y - (chk.y + 15));
+    if (dChk < 82) {
+      const queueList = getCheckoutQueue();
+      if (queueList.length > 0) {
+        candidates.push({
+          dist: dChk - 15, // priority
+          type: 'checkout',
+          obj: chk,
+          label: `[E] Cobrar a ${queueList[0].name} (${queueList[0].cart.length} art.)`
+        });
+      } else {
+        candidates.push({
+          dist: dChk,
+          type: 'checkout',
+          obj: chk,
+          label: `Caja Registradora (Sin fila)`
+        });
+      }
+    }
+
+    // 4. Check Open/Closed Sign
+    const dSign = Math.hypot(p.x - state.signPost.x, p.y - state.signPost.y);
+    if (dSign < 60) {
+      candidates.push({
+        dist: dSign,
+        type: 'sign',
+        label: state.storeOpen ? `[E] Cerrar Tienda` : `[E] ¡ABRIR TIENDA!`
+      });
+    }
+
+    // 5. Check Trash Can
+    const dTrash = Math.hypot(p.x - state.trashCan.x, p.y - state.trashCan.y);
+    if (dTrash < 58) {
+      candidates.push({
+        dist: dTrash,
+        type: 'trash',
+        label: p.carrying
+          ? `[E] Reciclar Caja (+$2 Bono)`
+          : `Basurero de Reciclaje (+$2 por caja)`
+      });
+    }
+
+    // 6. Check PC Desk
+    const dPC = Math.hypot(p.x - state.pcDesk.x, p.y - (state.pcDesk.y + 14));
+    if (dPC < 68) {
+      candidates.push({
+        dist: dPC,
+        type: 'pc',
+        label: `[E] Usar Terminal UNDERNET PC`
+      });
+    }
+
+    candidates.sort((a, b) => a.dist - b.dist);
+    return candidates[0] || null;
+  }
+
+  function triggerDash() {
+    const p = state.player;
+    if (p.dashCooldown <= 0) {
+      p.dashTimer = 0.18;
+      p.dashCooldown = 0.75;
+      sfx.dash();
+      spawnBurst(p.x, p.y + 10, '#38bdf8', 8);
+    }
+  }
+  window.triggerDash = triggerDash;
+
+  function triggerDropBox() {
+    const p = state.player;
+    if (!p.carrying) return;
+    if (p.carrying.count <= 0) {
+      p.carrying = null;
+      sfx.drop();
+      addFloatingText(p.x, p.y - 20, 'CAJA VACÍA DESCARTADA', '#94a3b8');
+      updateHUD();
+      return;
+    }
+    state.crates.push({
+      id: Date.now() + Math.random(),
+      prodIndex: p.carrying.prodIndex,
+      count: p.carrying.count,
+      x: p.x + p.facing * 24,
+      y: p.y + 10,
+      bounce: 1.0
+    });
+    p.carrying = null;
+    sfx.drop();
+    updateHUD();
+  }
+  window.triggerDropBox = triggerDropBox;
+
+  function triggerInteract() {
+    const p = state.player;
+    const nearest = getNearestInteraction();
+    if (!nearest) return;
+
+    if (nearest.type === 'crate') {
+      if (p.carrying) {
+        sfx.error();
+        addFloatingText(p.x, p.y - 24, '¡MANOS OCUPADAS! [Q]', '#f87171');
+        return;
+      }
+      const crate = nearest.obj;
+      p.carrying = { prodIndex: crate.prodIndex, count: crate.count };
+      state.crates.splice(nearest.index, 1);
+      sfx.pickup();
+      const prod = PRODUCTS[crate.prodIndex];
+      addFloatingText(p.x, p.y - 25, `📦 ${prod.short} x${crate.count}`, prod.colorSecondary);
+      setDialog(`Recogiste una caja de ${prod.name}. Llévala a un estante adentro.`, prod.icon);
+      updateHUD();
+    }
+    else if (nearest.type === 'shelf') {
+      const shelf = nearest.obj;
+      if (p.carrying) {
+        if (p.carrying.count <= 0) {
+          sfx.error();
+          addFloatingText(shelf.x, shelf.y - 20, 'CAJA VACÍA -> BASURERO', '#f87171');
+          return;
+        }
+        // Allow changing shelf product type if shelf is currently empty
+        if (shelf.count === 0 && shelf.prodIndex !== p.carrying.prodIndex) {
+          shelf.prodIndex = p.carrying.prodIndex;
+        }
+        if (shelf.prodIndex !== p.carrying.prodIndex) {
+          sfx.error();
+          addFloatingText(shelf.x, shelf.y - 20, '¡PRODUCTO DISTINTO!', '#f87171');
+          return;
+        }
+        if (shelf.count >= shelf.max) {
+          sfx.error();
+          addFloatingText(shelf.x, shelf.y - 20, '¡ESTANTE LLENO!', '#facc15');
+          return;
+        }
+        // Stock as many items as possible or 1 item per tap? Stock all that fit for snappy Soul Knight feel!
+        const space = shelf.max - shelf.count;
+        const transfer = Math.min(space, p.carrying.count);
+        shelf.count += transfer;
+        p.carrying.count -= transfer;
+        sfx.stock();
+        const prod = PRODUCTS[shelf.prodIndex];
+        spawnBurst(shelf.x, shelf.y - 10, prod.colorPrimary, 10);
+        addFloatingText(shelf.x, shelf.y - 28, `+${transfer} ${prod.short}`, '#4ade80');
+        if (p.carrying.count <= 0) {
+          setDialog(`¡Caja vacía! Tírala en el basurero verde [E] para ganar +$2 o suéltala con [Q].`, '♻️');
+        }
+        updateHUD();
+      } else {
+        // Cycle price tier when hands are empty
+        const prod = PRODUCTS[shelf.prodIndex];
+        prod.priceTier = prod.priceTier === 0 ? 1 : (prod.priceTier === 1 ? -1 : 0);
+        const tierNames = { '-1': 'OFERTA', '0': 'NORMAL', '1': 'CARO' };
+        sfx.blip();
+        addFloatingText(
+          shelf.x,
+          shelf.y - 28,
+          `${prod.short}: $${getProductSellPrice(prod)} (${tierNames[prod.priceTier]})`,
+          '#38bdf8'
+        );
+        setDialog(`Precio de ${prod.name} ajustado a $${getProductSellPrice(prod)} (${tierNames[prod.priceTier]}).`, '🏷️');
+      }
+    }
+    else if (nearest.type === 'checkout') {
+      processCheckoutCustomer();
+    }
+    else if (nearest.type === 'sign') {
+      window.toggleStoreState();
+    }
+    else if (nearest.type === 'trash') {
+      if (p.carrying) {
+        p.carrying = null;
+        state.money += 2;
+        state.dailyRevenue += 2;
+        sfx.cash();
+        spawnBurst(state.trashCan.x, state.trashCan.y - 10, '#4ade80', 12);
+        addFloatingText(state.trashCan.x, state.trashCan.y - 25, '+$2 RECICLAJE', '#4ade80');
+        updateHUD();
+      } else {
+        sfx.blip();
+        setDialog('Basurero ecológico del subsuelo. Recicla cajas vacías aquí por +$2.', '♻️');
+      }
+    }
+    else if (nearest.type === 'pc') {
+      window.openPCModal();
+    }
+  }
+  window.triggerInteract = triggerInteract;
+
+  // ============================================================================
+  // 7. CHECKOUT & CUSTOMER AI LOGIC
+  // ============================================================================
+  function getCheckoutQueue() {
+    return state.customers
+      .filter(c => c.state === 'QUEUE')
+      .sort((a, b) => a.queueJoinedAt - b.queueJoinedAt);
+  }
+
+  function processCheckoutCustomer() {
+    const queue = getCheckoutQueue();
+    if (queue.length === 0) {
+      sfx.blip();
+      addFloatingText(state.checkout.x, state.checkout.y - 25, 'SIN CLIENTES EN CAJA', '#94a3b8');
+      return;
+    }
+    const cust = queue[0];
+    let total = 0;
+    cust.cart.forEach(prodIdx => {
+      total += getProductSellPrice(PRODUCTS[prodIdx]);
+    });
+    // Neon sign prestige bonus
+    if (state.upgrades.neonSign) {
+      total += Math.ceil(cust.cart.length * 1.5);
+    }
+
+    state.money += total;
+    state.dailyRevenue += total;
+    state.dailyServed += 1;
+    state.reputation = Math.min(5.0, +(state.reputation + 0.08).toFixed(2));
+
+    cust.state = 'LEAVING';
+    cust.thought = '❤️';
+    cust.thoughtTimer = 2.5;
+
+    sfx.cash();
+    spawnBurst(state.checkout.x, state.checkout.y - 15, '#fde047', 18);
+    addFloatingText(state.checkout.x, state.checkout.y - 34, `+$${total}`, '#fde047', 1.25);
+
+    const quote = cust.quotes[Math.floor(Math.random() * cust.quotes.length)];
+    setDialog(`${cust.name}: "${quote}" (Pagó $${total})`, cust.emoji);
+    updateHUD();
+  }
+
+  function spawnCustomer() {
+    if (!state.storeOpen) return;
+    const maxCustomers = state.upgrades.neonSign ? 8 : 5;
+    if (state.customers.length >= maxCustomers) return;
+
+    const arch = CUSTOMER_ARCHETYPES[Math.floor(Math.random() * CUSTOMER_ARCHETYPES.length)];
+    // Choose 1 to 3 desired shelves
+    const wantCount = 1 + Math.floor(Math.random() * 2);
+    const targetShelfIds = [];
+    for (let i = 0; i < wantCount; i++) {
+      targetShelfIds.push(Math.floor(Math.random() * state.shelves.length));
+    }
+
+    state.customers.push({
+      id: Date.now() + Math.random(),
+      ...arch,
+      x: 95,
+      y: 520,
+      speed: 78 + Math.random() * 22,
+      facing: 1,
+      walkFrame: Math.random() * 10,
+      state: 'ENTERING', // ENTERING -> BROWSE -> QUEUE -> LEAVING
+      targetShelfIds,
+      currentShelfId: null,
+      waitTimer: 0,
+      patience: 24, // seconds in queue
+      maxPatience: 24,
+      cart: [],
+      thought: null,
+      thoughtTimer: 0,
+      queueJoinedAt: 0
+    });
+  }
+
+  function moveTowards(entity, tx, ty, speed, dt) {
+    const dx = tx - entity.x;
+    const dy = ty - entity.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist <= 4) return true;
+    const step = Math.min(dist, speed * dt);
+    entity.x += (dx / dist) * step;
+    entity.y += (dy / dist) * step;
+    if (Math.abs(dx) > 1) entity.facing = dx >= 0 ? 1 : -1;
+    entity.walkFrame += dt * 10;
+    return false;
+  }
+
+  function updateCustomers(dt) {
+    const queue = getCheckoutQueue();
+
+    for (let i = state.customers.length - 1; i >= 0; i--) {
+      const c = state.customers[i];
+      if (c.thoughtTimer > 0) {
+        c.thoughtTimer -= dt;
+        if (c.thoughtTimer <= 0) c.thought = null;
+      }
+
+      if (c.state === 'ENTERING') {
+        // Walk from sidewalk through door (205, 305)
+        if (moveTowards(c, 235, 305, c.speed, dt)) {
+          c.state = 'BROWSE';
+        }
+      }
+      else if (c.state === 'BROWSE') {
+        if (c.currentShelfId === null) {
+          if (c.targetShelfIds.length > 0) {
+            c.currentShelfId = c.targetShelfIds.shift();
+            c.waitTimer = 0.9;
+          } else {
+            if (c.cart.length > 0) {
+              c.state = 'QUEUE';
+              c.queueJoinedAt = performance.now();
+            } else {
+              c.state = 'LEAVING';
+            }
+          }
+        } else {
+          const shelf = state.shelves[c.currentShelfId];
+          const tx = shelf.x + (Math.sin(c.id) * 18);
+          const ty = shelf.y + 34;
+          if (moveTowards(c, tx, ty, c.speed, dt)) {
+            c.waitTimer -= dt;
+            const prod = PRODUCTS[shelf.prodIndex];
+            c.thought = prod.icon;
+            c.thoughtTimer = 0.5;
+
+            if (c.waitTimer <= 0) {
+              // Check stock and price
+              if (shelf.count > 0) {
+                // High price has small chance of rejection
+                if (prod.priceTier === 1 && Math.random() < 0.28) {
+                  c.thought = '💸';
+                  c.thoughtTimer = 2.0;
+                  addFloatingText(c.x, c.y - 28, '¡MUY CARO!', '#fb923c', 0.85);
+                } else {
+                  shelf.count -= 1;
+                  c.cart.push(shelf.prodIndex);
+                  c.thought = '✨';
+                  c.thoughtTimer = 1.4;
+                  spawnBurst(shelf.x, shelf.y - 8, prod.colorPrimary, 5);
+                }
+              } else {
+                // Empty shelf!
+                c.thought = '💢';
+                c.thoughtTimer = 2.2;
+                sfx.error();
+                addFloatingText(c.x, c.y - 28, `¡SIN ${prod.short}!`, '#f87171', 0.85);
+                state.reputation = Math.max(1.0, +(state.reputation - 0.05).toFixed(2));
+              }
+              c.currentShelfId = null;
+            }
+          }
+        }
+      }
+      else if (c.state === 'QUEUE') {
+        const qIndex = queue.indexOf(c);
+        const qx = state.checkout.x + 25 + qIndex * 42;
+        const qy = state.checkout.y - 26;
+        const arrived = moveTowards(c, qx, qy, c.speed, dt);
+        if (arrived && qIndex === 0) {
+          c.thought = '💵';
+          c.thoughtTimer = 0.5;
+          c.patience -= dt;
+          if (c.patience <= 0) {
+            // Customer leaves angry and returns items
+            c.state = 'LEAVING';
+            c.thought = '🤬';
+            c.thoughtTimer = 3.0;
+            c.cart = [];
+            state.dailyAngry += 1;
+            state.reputation = Math.max(1.0, +(state.reputation - 0.25).toFixed(2));
+            sfx.error();
+            addFloatingText(c.x, c.y - 30, '¡DEMASIADA FILA! -REP', '#ef4444');
+            setDialog(`¡${c.name} se fue furioso porque nadie le cobró en la caja!`, '💢');
+            updateHUD();
+          }
+        }
+      }
+      else if (c.state === 'LEAVING') {
+        // Walk to door first if inside store
+        if (c.x > 215) {
+          moveTowards(c, 195, 305, c.speed * 1.15, dt);
+        } else {
+          if (moveTowards(c, 95, 545, c.speed * 1.15, dt)) {
+            state.customers.splice(i, 1);
+          }
+        }
+      }
+    }
+  }
+
+  // ============================================================================
+  // 8. AUTOMATION HELPERS (Cashier Bot & Restock Imp)
+  // ============================================================================
+  function updateAutomation(dt) {
+    // 1. Cashier Drone Bot
+    if (state.upgrades.cashierBot) {
+      const queue = getCheckoutQueue();
+      if (queue.length > 0) {
+        const first = queue[0];
+        const distToReg = Math.hypot(first.x - (state.checkout.x + 25), first.y - (state.checkout.y - 26));
+        if (distToReg < 18) {
+          state.checkout.botTimer += dt;
+          if (state.checkout.botTimer >= 2.2) {
+            state.checkout.botTimer = 0;
+            processCheckoutCustomer();
+          }
+        }
+      } else {
+        state.checkout.botTimer = 0;
+      }
+    }
+
+    // 2. Restock Imp Helper
+    if (state.upgrades.restockImp) {
+      const imp = state.imp;
+      const impSpeed = 125;
+
+      if (!imp.carrying) {
+        // Find a crate on the floor that matches a shelf needing stock
+        let chosenCrateIndex = -1;
+        for (let i = 0; i < state.crates.length; i++) {
+          const cr = state.crates[i];
+          const needsStock = state.shelves.some(s => s.prodIndex === cr.prodIndex && s.count < s.max);
+          if (needsStock) {
+            chosenCrateIndex = i;
+            break;
+          }
+        }
+        if (chosenCrateIndex !== -1) {
+          const targetCrate = state.crates[chosenCrateIndex];
+          if (moveTowards(imp, targetCrate.x, targetCrate.y, impSpeed, dt)) {
+            imp.carrying = { prodIndex: targetCrate.prodIndex, count: targetCrate.count };
+            state.crates.splice(chosenCrateIndex, 1);
+            sfx.pickup();
+          }
+        } else {
+          // Idle near PC room
+          moveTowards(imp, 830, 235, impSpeed * 0.7, dt);
+        }
+      } else {
+        // Find shelf for carried product
+        const targetShelf = state.shelves.find(
+          s => s.prodIndex === imp.carrying.prodIndex && s.count < s.max
+        );
+        if (targetShelf) {
+          if (moveTowards(imp, targetShelf.x, targetShelf.y + 28, impSpeed, dt)) {
+            const space = targetShelf.max - targetShelf.count;
+            const transfer = Math.min(space, imp.carrying.count);
+            targetShelf.count += transfer;
+            imp.carrying.count -= transfer;
+            sfx.stock();
+            addFloatingText(targetShelf.x, targetShelf.y - 24, `+${transfer} IMP`, '#c084fc', 0.85);
+            if (imp.carrying.count <= 0) {
+              imp.carrying = null;
+            }
+          }
+        } else {
+          // Drop crate inside store if all shelves for this product are full
+          state.crates.push({
+            id: Date.now() + Math.random(),
+            prodIndex: imp.carrying.prodIndex,
+            count: imp.carrying.count,
+            x: imp.x,
+            y: imp.y,
+            bounce: 1.0
+          });
+          imp.carrying = null;
+        }
+      }
+    }
+  }
+
+  // ============================================================================
+  // 9. UI MODALS & STORE CONTROLS
+  // ============================================================================
+  window.toggleStoreState = function() {
+    state.storeOpen = !state.storeOpen;
+    sfx.pickup();
+    if (state.storeOpen) {
+      addFloatingText(state.signPost.x, state.signPost.y - 25, '¡TIENDA ABIERTA!', '#4ade80', 1.2);
+      setDialog('¡La tienda está ABIERTA! Los monstruos y caballeros empezarán a entrar.', '🔔');
+    } else {
+      addFloatingText(state.signPost.x, state.signPost.y - 25, 'TIENDA CERRADA', '#f87171', 1.2);
+      setDialog('Cerraste la tienda a nuevos clientes. Atiende a los que quedan adentro.', '🔒');
+    }
+    updateHUD();
+  };
+
+  window.toggleAudioMute = function() {
+    sfx.muted = !sfx.muted;
+    document.getElementById('btn-mute').textContent = sfx.muted ? '🔇' : '🔊';
+  };
+
+  window.openPCModal = function() {
+    state.pcOpen = true;
+    sfx.blip();
+    document.getElementById('pc-modal').classList.remove('hidden');
+    renderPCModal();
+  };
+
+  window.closePCModal = function() {
+    state.pcOpen = false;
+    sfx.blip();
+    document.getElementById('pc-modal').classList.add('hidden');
+  };
+
+  window.switchPCTab = function(tab) {
+    state.pcTab = tab;
+    sfx.blip();
+    const tabs = ['supply', 'prices', 'upgrades'];
+    tabs.forEach(t => {
+      const btn = document.getElementById('tab-btn-' + t);
+      if (t === tab) {
+        btn.className = 'flex-1 py-2.5 text-[10px] sm:text-xs border-r-2 border-white bg-yellow-400 text-black font-bold';
+      } else {
+        btn.className = 'flex-1 py-2.5 text-[10px] sm:text-xs border-r-2 border-white text-white hover:bg-zinc-800';
+      }
+    });
+    renderPCModal();
+  };
+
+  window.buyProductCrate = function(prodIdx) {
+    const prod = PRODUCTS[prodIdx];
+    if (state.money < prod.boxCost) {
+      sfx.error();
+      return;
+    }
+    state.money -= prod.boxCost;
+    state.dailySpent += prod.boxCost;
+    spawnCrateOnCurb(prodIdx, prod.boxCount);
+    sfx.cash();
+    setDialog(`Pediste 1 caja de ${prod.name}. ¡Fue entregada en la acera exterior!`, '📦');
+    updateHUD();
+    renderPCModal();
+  };
+
+  window.setProductPriceTier = function(prodIdx, tier) {
+    PRODUCTS[prodIdx].priceTier = tier;
+    sfx.blip();
+    renderPCModal();
+  };
+
+  window.buyUpgrade = function(key, cost) {
+    if (state.upgrades[key] || state.money < cost) {
+      sfx.error();
+      return;
+    }
+    state.money -= cost;
+    state.dailySpent += cost;
+    state.upgrades[key] = true;
+    if (key === 'hermesBoots') {
+      state.player.speed = 260;
+    }
+    sfx.fanfare();
+    setDialog('¡Mejora instalada con éxito! Tu supermercado sube de nivel.', '⚡');
+    updateHUD();
+    renderPCModal();
+  };
+
+  function renderPCModal() {
+    const container = document.getElementById('pc-modal-content');
+    document.getElementById('pc-footer-money').textContent = `$${state.money}`;
+    if (!container) return;
+
+    if (state.pcTab === 'supply') {
+      container.innerHTML = `
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          ${PRODUCTS.map((p, idx) => {
+            const sell = getProductSellPrice(p);
+            const profit = (sell * p.boxCount) - p.boxCost;
+            const canAfford = state.money >= p.boxCost;
+            return `
+              <div class="border-2 border-white bg-zinc-900 p-3 flex flex-col justify-between gap-3">
+                <div class="flex items-start justify-between gap-2">
+                  <div class="flex items-center gap-2.5">
+                    <div class="w-10 h-10 border-2 border-white flex items-center justify-center text-xl" style="background:${p.colorPrimary}33">
+                      ${p.icon}
+                    </div>
+                    <div>
+                      <div class="text-white font-bold text-xs">${p.name}</div>
+                      <div class="text-[10px] text-zinc-400">Caja de ${p.boxCount} unidades</div>
+                    </div>
+                  </div>
+                  <span class="bg-black border border-yellow-400 text-yellow-300 px-2 py-0.5 text-[10px]">
+                    Costo: $${p.boxCost}
+                  </span>
+                </div>
+                <div class="text-[10px] text-zinc-300 flex justify-between border-t border-zinc-800 pt-2">
+                  <span>Venta actual: <b class="text-emerald-400">$${sell} c/u</b></span>
+                  <span>Ganancia/Caja: <b class="text-yellow-300">+$${profit}</b></span>
+                </div>
+                <button onclick="window.buyProductCrate(${idx})" ${!canAfford ? 'disabled' : ''} class="ut-btn ut-btn-green w-full py-2">
+                  🛒 COMPRAR CAJA ($${p.boxCost})
+                </button>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    } else if (state.pcTab === 'prices') {
+      container.innerHTML = `
+        <div class="space-y-2.5">
+          <p class="text-[10px] text-zinc-400 mb-2">
+            * Ajusta tu estrategia: <b class="text-cyan-300">OFERTA</b> atrae clientes felices, <b class="text-yellow-300">NORMAL</b> es equilibrado, <b class="text-orange-400">CARO</b> da más oro pero algunos clientes rechazarán comprar.
+          </p>
+          ${PRODUCTS.map((p, idx) => {
+            const sell = getProductSellPrice(p);
+            return `
+              <div class="border-2 border-white bg-zinc-900 p-3 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                  <span class="text-xl">${p.icon}</span>
+                  <div>
+                    <div class="text-xs text-white font-bold">${p.name}</div>
+                    <div class="text-[10px] text-emerald-400">Precio de Venta: $${sell} (Base: $${p.basePrice})</div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <button onclick="window.setProductPriceTier(${idx}, -1)" class="ut-btn ${p.priceTier === -1 ? '!bg-cyan-400 !text-black !border-cyan-400' : ''}">
+                    OFERTA ($${Math.max(1, Math.round(p.basePrice * 0.8))})
+                  </button>
+                  <button onclick="window.setProductPriceTier(${idx}, 0)" class="ut-btn ${p.priceTier === 0 ? '!bg-yellow-400 !text-black !border-yellow-400' : ''}">
+                    NORMAL ($${p.basePrice})
+                  </button>
+                  <button onclick="window.setProductPriceTier(${idx}, 1)" class="ut-btn ${p.priceTier === 1 ? '!bg-orange-500 !text-black !border-orange-500' : ''}">
+                    CARO ($${Math.round(p.basePrice * 1.35)})
+                  </button>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    } else if (state.pcTab === 'upgrades') {
+      const upList = [
+        {
+          key: 'cashierBot',
+          name: '🤖 Dron Cajero Automático',
+          desc: 'Atiende y cobra automáticamente a los clientes en la caja registradora cada 2.2s.',
+          cost: 65
+        },
+        {
+          key: 'restockImp',
+          name: '👾 Diablillo Reponedor (Imp AI)',
+          desc: 'Recoge cajas de la acera por ti y rellena los estantes vacíos automáticamente.',
+          cost: 85
+        },
+        {
+          key: 'hermesBoots',
+          name: '👟 Botas Soul Dash+',
+          desc: 'Aumenta tu velocidad de movimiento un +35% para correr por toda la tienda.',
+          cost: 45
+        },
+        {
+          key: 'neonSign',
+          name: '🌟 Letrero Neón "UNDERMART"',
+          desc: 'Atrae más clientes por día y otorga una propina extra en cada venta.',
+          cost: 95
+        }
+      ];
+      container.innerHTML = `
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          ${upList.map(u => {
+            const owned = state.upgrades[u.key];
+            const canAfford = state.money >= u.cost;
+            return `
+              <div class="border-2 ${owned ? 'border-emerald-400 bg-emerald-950/30' : 'border-white bg-zinc-900'} p-3 flex flex-col justify-between gap-3">
+                <div>
+                  <div class="text-xs font-bold ${owned ? 'text-emerald-300' : 'text-yellow-300'} mb-1">${u.name}</div>
+                  <p class="text-[10px] text-zinc-300 leading-relaxed">${u.desc}</p>
+                </div>
+                ${owned
+                  ? `<div class="text-center py-2 bg-emerald-500/20 border border-emerald-400 text-emerald-300 text-[10px]">✓ INSTALADO Y ACTIVO</div>`
+                  : `<button onclick="window.buyUpgrade('${u.key}', ${u.cost})" ${!canAfford ? 'disabled' : ''} class="ut-btn ut-btn-orange w-full py-2">
+                      COMPRAR MEJORA ($${u.cost})
+                    </button>`
+                }
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+  }
+
+  function formatTime(mins) {
+    const h = Math.floor(mins / 60);
+    const m = Math.floor(mins % 60);
+    const hh = String(h).padStart(2, '0');
+    const mm = String(m).padStart(2, '0');
+    return `${hh}:${mm}`;
+  }
+
+  function updateHUD() {
+    document.getElementById('hud-money').textContent = `$${state.money}`;
+    document.getElementById('hud-day').textContent = `DÍA ${state.day}`;
+    document.getElementById('hud-time').textContent = formatTime(state.timeMinutes);
+
+    const dot = document.getElementById('hud-store-dot');
+    const stText = document.getElementById('hud-store-status');
+    const btnStore = document.getElementById('btn-toggle-store');
+    if (state.storeOpen) {
+      dot.className = 'w-2.5 h-2.5 inline-block bg-emerald-400 animate-pulse';
+      stText.textContent = 'ABIERTA';
+      btnStore.className = 'ut-btn border-2 border-emerald-400 text-emerald-300 px-2 py-1 text-[10px]';
+    } else {
+      dot.className = 'w-2.5 h-2.5 inline-block bg-red-500';
+      stText.textContent = 'CERRADA';
+      btnStore.className = 'ut-btn border-2 border-red-400 text-red-300 px-2 py-1 text-[10px]';
+    }
+
+    const stars = Math.round(state.reputation);
+    document.getElementById('hud-rep').textContent = '★'.repeat(stars) + '☆'.repeat(5 - stars);
+
+    const carryText = document.getElementById('hud-carry-text');
+    if (state.player.carrying) {
+      const prod = PRODUCTS[state.player.carrying.prodIndex];
+      if (state.player.carrying.count > 0) {
+        carryText.textContent = `${prod.icon} ${prod.short} (${state.player.carrying.count}/${prod.boxCount})`;
+        carryText.className = 'text-[10px] text-yellow-300 font-bold';
+      } else {
+        carryText.textContent = `📦 CAJA VACÍA (Reciclar [E] o [Q])`;
+        carryText.className = 'text-[10px] text-orange-400 font-bold';
+      }
+    } else {
+      carryText.textContent = 'MANOS LIBRES';
+      carryText.className = 'text-[10px] text-emerald-400';
+    }
+  }
+
+  function openDaySummary() {
+    state.daySummaryOpen = true;
+    state.storeOpen = false;
+    sfx.fanfare();
+    document.getElementById('summary-day-num').textContent = state.day;
+    document.getElementById('sum-customers').textContent = state.dailyServed;
+    document.getElementById('sum-angry').textContent = state.dailyAngry;
+    document.getElementById('sum-revenue').textContent = `+$${state.dailyRevenue}`;
+    document.getElementById('sum-spent').textContent = `-$${state.dailySpent}`;
+    document.getElementById('sum-total').textContent = `$${state.money}`;
+    document.getElementById('day-modal').classList.remove('hidden');
+    updateHUD();
+  }
+
+  window.startNextDay = function() {
+    state.day += 1;
+    state.timeMinutes = 8 * 60;
+    state.dailyServed = 0;
+    state.dailyAngry = 0;
+    state.dailyRevenue = 0;
+    state.dailySpent = 0;
+    state.customers = [];
+    state.daySummaryOpen = false;
+    document.getElementById('day-modal').classList.add('hidden');
+    sfx.pickup();
+    setDialog(`¡Comienza el DÍA ${state.day}! Revisa tus estantes y abre la tienda cuando estés listo.`, '☀️');
+    updateHUD();
+  };
+
+  // ============================================================================
+  // 10. MAIN UPDATE LOOP (Physics, Wall Collisions, Timers)
+  // ============================================================================
+  function resolvePlayerCollisions(p) {
+    // World outer boundaries
+    p.x = Math.max(26, Math.min(VW - 26, p.x));
+    p.y = Math.max(76, Math.min(VH - 26, p.y));
+
+    // Store Left Dividing Wall at x = 202 (with doorway gap between y=250 and y=360)
+    const wallX = 202;
+    const wallHalf = 10;
+    if (p.y < 252 || p.y > 358) {
+      if (Math.abs(p.x - wallX) < p.radius + wallHalf) {
+        if (p.x < wallX) p.x = wallX - (p.radius + wallHalf);
+        else p.x = wallX + (p.radius + wallHalf);
+      }
+    }
+
+    // Solid furniture footprints (Shelves, Checkout, PC Desk)
+    const colliders = [
+      ...state.shelves.map(s => ({ x: s.x, y: s.y, hw: s.w / 2 - 4, hh: 14 })),
+      { x: state.checkout.x, y: state.checkout.y, hw: state.checkout.w / 2 - 4, hh: 16 },
+      { x: state.pcDesk.x, y: state.pcDesk.y, hw: state.pcDesk.w / 2 - 4, hh: 14 }
+    ];
+
+    for (const box of colliders) {
+      const dx = p.x - box.x;
+      const dy = p.y - box.y;
+      const ox = (box.hw + p.radius) - Math.abs(dx);
+      const oy = (box.hh + p.radius) - Math.abs(dy);
+      if (ox > 0 && oy > 0) {
+        if (ox < oy) {
+          p.x += dx > 0 ? ox : -ox;
+        } else {
+          p.y += dy > 0 ? oy : -oy;
+        }
+      }
+    }
+  }
+
+  function update(dt) {
+    if (state.pcOpen || state.daySummaryOpen) return;
+
+    // 1. Day/Night Clock progression (1 game hour ~ 14 real seconds)
+    if (state.storeOpen || state.timeMinutes > 8 * 60) {
+      state.timeMinutes += dt * 4.2;
+      if (Math.floor(state.timeMinutes) % 10 === 0) {
+        document.getElementById('hud-time').textContent = formatTime(state.timeMinutes);
+      }
+      if (state.timeMinutes >= 21 * 60) {
+        state.timeMinutes = 21 * 60;
+        openDaySummary();
+        return;
+      }
+    }
+
+    // 2. Player Movement & Dash
+    const p = state.player;
+    if (p.dashCooldown > 0) p.dashCooldown -= dt;
+    if (p.dashTimer > 0) p.dashTimer -= dt;
+
+    let mx = 0;
+    let my = 0;
+    if (keys['KeyW'] || keys['ArrowUp'] || touchDirs.up) my -= 1;
+    if (keys['KeyS'] || keys['ArrowDown'] || touchDirs.down) my += 1;
+    if (keys['KeyA'] || keys['ArrowLeft'] || touchDirs.left) mx -= 1;
+    if (keys['KeyD'] || keys['ArrowRight'] || touchDirs.right) mx += 1;
+
+    if (mx !== 0 || my !== 0) {
+      const len = Math.hypot(mx, my);
+      mx /= len;
+      my /= len;
+      if (mx !== 0) p.facing = mx > 0 ? 1 : -1;
+
+      const dashMult = p.dashTimer > 0 ? 2.55 : 1.0;
+      const prevFrame = Math.floor(p.walkFrame);
+      p.walkFrame += dt * 12 * dashMult;
+      if (Math.floor(p.walkFrame) !== prevFrame && Math.floor(p.walkFrame) % 4 === 0) {
+        sfx.step();
+        // Footstep dust
+        state.particles.push({
+          x: p.x,
+          y: p.y + 12,
+          vx: (Math.random() - 0.5) * 18,
+          vy: -5,
+          size: 3,
+          color: '#94a3b8',
+          life: 0.25,
+          maxLife: 0.25
+        });
+      }
+
+      p.x += mx * p.speed * dashMult * dt;
+      p.y += my * p.speed * dashMult * dt;
+      resolvePlayerCollisions(p);
+
+      if (p.dashTimer > 0) {
+        p.afterimages.push({ x: p.x, y: p.y, facing: p.facing, alpha: 0.65 });
+      }
+    }
+
+    // Update afterimages
+    for (let i = p.afterimages.length - 1; i >= 0; i--) {
+      p.afterimages[i].alpha -= dt * 3.2;
+      if (p.afterimages[i].alpha <= 0) p.afterimages.splice(i, 1);
+    }
+
+    // 3. Customer Spawning & AI
+    if (state.storeOpen) {
+      state.customerSpawnTimer -= dt;
+      if (state.customerSpawnTimer <= 0) {
+        spawnCustomer();
+        const baseInterval = state.upgrades.neonSign ? 3.8 : 5.4;
+        state.customerSpawnTimer = baseInterval + Math.random() * 2.5;
+      }
+    }
+    updateCustomers(dt);
+
+    // 4. Automation Bots
+    updateAutomation(dt);
+
+    // 5. Particles & Floating Text Juice
+    for (let i = state.particles.length - 1; i >= 0; i--) {
+      const pt = state.particles[i];
+      pt.x += pt.vx * dt;
+      pt.y += pt.vy * dt;
+      pt.life -= dt;
+      if (pt.life <= 0) state.particles.splice(i, 1);
+    }
+    for (let i = state.floatingTexts.length - 1; i >= 0; i--) {
+      const ft = state.floatingTexts[i];
+      ft.y += ft.vy * dt;
+      ft.life -= dt;
+      if (ft.life <= 0) state.floatingTexts.splice(i, 1);
+    }
+
+    // 6. Update Action Prompt Overlay
+    const nearest = getNearestInteraction();
+    const promptEl = document.getElementById('action-prompt');
+    const promptTxt = document.getElementById('action-prompt-text');
+    if (nearest) {
+      promptEl.classList.remove('hidden');
+      promptTxt.textContent = nearest.label;
+    } else {
+      promptEl.classList.add('hidden');
+    }
+  }
+
+  // ============================================================================
+  // 11. 2.5D OBLIQUE PIXEL-ART RENDERER (Y-Sorted Depth Engine)
+  // ============================================================================
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = VW;
+  canvas.height = VH;
+
+  // Helper: Draw a 2.5D oblique block (front face + top roof face + crisp pixel outline)
+  function drawObliqueBlock(x, y, w, depth, height, topColor, frontColor, borderColor = '#090a0f') {
+    const left = Math.round(x - w / 2);
+    const frontBottom = Math.round(y + depth / 2);
+    const frontTop = frontBottom - height;
+    const roofTop = frontTop - depth;
+
+    // Drop Shadow
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.38)';
+    ctx.fillRect(left + 4, frontBottom - depth + 4, w, depth + 4);
+
+    // Top Surface
+    ctx.fillStyle = topColor;
+    ctx.fillRect(left, roofTop, w, depth);
+
+    // Front Surface
+    ctx.fillStyle = frontColor;
+    ctx.fillRect(left, frontTop, w, height);
+
+    // Crisp Pixel Outlines
+    ctx.strokeStyle = borderColor;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(left, roofTop, w, depth);
+    ctx.strokeRect(left, frontTop, w, height);
+  }
+
+  function drawMiniProductItem(px, py, prodIdx) {
+    const prod = PRODUCTS[prodIdx];
+    ctx.fillStyle = '#000';
+    ctx.fillRect(px - 6, py - 12, 12, 13);
+    ctx.fillStyle = prod.colorPrimary;
+    ctx.fillRect(px - 5, py - 11, 10, 11);
+    ctx.fillStyle = prod.colorSecondary;
+    ctx.fillRect(px - 3, py - 8, 6, 4);
+    ctx.fillStyle = prod.bottleNeck;
+    ctx.fillRect(px - 2, py - 13, 4, 2);
+  }
+
+  function drawShelf25D(shelf) {
+    const prod = PRODUCTS[shelf.prodIndex];
+    // 2.5D Wooden/Metal Gondola Shelf
+    drawObliqueBlock(shelf.x, shelf.y, shelf.w, 26, 44, '#475569', '#1e293b', '#0f172a');
+
+    const left = Math.round(shelf.x - shelf.w / 2);
+    const frontBottom = Math.round(shelf.y + 13);
+    const frontTop = frontBottom - 44;
+
+    // Two internal shelf recesses
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(left + 6, frontTop + 6, shelf.w - 12, 14);
+    ctx.fillRect(left + 6, frontTop + 24, shelf.w - 12, 14);
+
+    // Shelf price tag strip
+    ctx.fillStyle = prod.colorPrimary;
+    ctx.fillRect(left + 4, frontTop - 16, shelf.w - 8, 12);
+
+    // Product label & price on top roof
+    ctx.font = '8px "Press Start 2P"';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(`${prod.short} $${getProductSellPrice(prod)}`, shelf.x, frontTop - 7);
+
+    // Draw individual miniature pixel products stocked on the 2 rows (up to 8)
+    for (let i = 0; i < shelf.count; i++) {
+      const row = i < 4 ? 0 : 1;
+      const col = i % 4;
+      const itemX = left + 16 + col * 21;
+      const itemY = frontTop + (row === 0 ? 19 : 37);
+      drawMiniProductItem(itemX, itemY, shelf.prodIndex);
+    }
+
+    // Empty warning badge if 0 stock
+    if (shelf.count === 0) {
+      const pulse = Math.sin(performance.now() * 0.008) > 0;
+      if (pulse) {
+        ctx.fillStyle = '#ef4444';
+        ctx.font = '8px "Press Start 2P"';
+        ctx.fillText('VACÍO', shelf.x, frontTop + 26);
+      }
+    }
+  }
+
+  function drawCheckout25D() {
+    const c = state.checkout;
+    drawObliqueBlock(c.x, c.y, c.w, 30, 34, '#334155', '#1e293b', '#090a0f');
+
+    const left = Math.round(c.x - c.w / 2);
+    const roofY = Math.round(c.y + 15 - 34 - 30);
+
+    // Conveyor belt on top surface
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(left + 8, roofY + 5, 62, 18);
+    ctx.strokeStyle = '#475569';
+    ctx.strokeRect(left + 8, roofY + 5, 62, 18);
+
+    // Cash Register Monitor
+    ctx.fillStyle = '#eab308';
+    ctx.fillRect(left + 78, roofY - 12, 24, 18);
+    ctx.strokeStyle = '#000';
+    ctx.strokeRect(left + 78, roofY - 12, 24, 18);
+    ctx.fillStyle = '#22c55e';
+    ctx.fillRect(left + 81, roofY - 9, 18, 9);
+
+    // Cashier floor mat behind counter
+    ctx.fillStyle = 'rgba(250, 204, 21, 0.18)';
+    ctx.fillRect(c.x - 24, c.y + 20, 48, 22);
+    ctx.strokeStyle = '#eab308';
+    ctx.strokeRect(c.x - 24, c.y + 20, 48, 22);
+
+    // If Cashier Drone Bot upgrade is active, draw floating drone!
+    if (state.upgrades.cashierBot) {
+      const hover = Math.sin(performance.now() * 0.006) * 4;
+      const bx = c.x;
+      const by = c.y + 30 + hover;
+      ctx.fillStyle = 'rgba(0,0,0,0.4)';
+      ctx.fillRect(bx - 10, c.y + 34, 20, 6);
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillRect(bx - 11, by - 24, 22, 18);
+      ctx.strokeStyle = '#fff';
+      ctx.strokeRect(bx - 11, by - 24, 22, 18);
+      ctx.fillStyle = '#000';
+      ctx.fillRect(bx - 7, by - 20, 14, 8);
+      ctx.fillStyle = '#4ade80';
+      ctx.fillRect(bx - 4, by - 18, 3, 4);
+      ctx.fillRect(bx + 2, by - 18, 3, 4);
+    }
+  }
+
+  function drawPCDesk25D() {
+    const d = state.pcDesk;
+    drawObliqueBlock(d.x, d.y, d.w, 24, 30, '#475569', '#334155', '#090a0f');
+    const roofY = Math.round(d.y + 12 - 30 - 24);
+    // Retro CRT Monitor
+    ctx.fillStyle = '#cbd5e1';
+    ctx.fillRect(d.x - 14, roofY - 14, 28, 22);
+    ctx.strokeStyle = '#000';
+    ctx.strokeRect(d.x - 14, roofY - 14, 28, 22);
+    const glow = Math.sin(performance.now() * 0.005) > 0 ? '#22c55e' : '#4ade80';
+    ctx.fillStyle = glow;
+    ctx.fillRect(d.x - 10, roofY - 10, 20, 14);
+  }
+
+  function drawSignPost25D() {
+    const s = state.signPost;
+    drawObliqueBlock(s.x, s.y, 38, 16, 36, '#3f3f46', '#18181b', '#000');
+    const topY = s.y + 8 - 36 - 16;
+    ctx.fillStyle = state.storeOpen ? '#22c55e' : '#ef4444';
+    ctx.fillRect(s.x - 15, topY + 12, 30, 16);
+    ctx.font = '7px "Press Start 2P"';
+    ctx.fillStyle = '#000';
+    ctx.textAlign = 'center';
+    ctx.fillText(state.storeOpen ? 'OPEN' : 'CLOSE', s.x, topY + 23);
+  }
+
+  function drawTrashCan25D() {
+    const t = state.trashCan;
+    drawObliqueBlock(t.x, t.y, 32, 18, 28, '#22c55e', '#15803d', '#052e16');
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '10px "Press Start 2P"';
+    ctx.textAlign = 'center';
+    ctx.fillText('♻', t.x, t.y - 4);
+  }
+
+  function drawCrate25D(crate) {
+    const prod = PRODUCTS[crate.prodIndex];
+    drawObliqueBlock(crate.x, crate.y, 32, 16, 20, '#d97706', '#b45309', '#451a03');
+    // Product stripe on box
+    ctx.fillStyle = prod.colorPrimary;
+    ctx.fillRect(crate.x - 12, crate.y - 12, 24, 8);
+    ctx.fillStyle = '#fff';
+    ctx.font = '7px "Press Start 2P"';
+    ctx.textAlign = 'center';
+    ctx.fillText(`x${crate.count}`, crate.x, crate.y - 5);
+  }
+
+  function drawCharacterSprite(x, y, facing, walkFrame, headColor, bodyColor, eyeColor, carrying, labelEmoji) {
+    const bounce = Math.abs(Math.sin(walkFrame)) * 4;
+    const px = Math.round(x);
+    const py = Math.round(y - bounce);
+
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.beginPath();
+    ctx.ellipse(px, y + 10, 13, 6, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Feet
+    const legOffset = Math.sin(walkFrame) * 4;
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(px - 8, y + 2 + legOffset * 0.4, 6, 6);
+    ctx.fillRect(px + 2, y + 2 - legOffset * 0.4, 6, 6);
+
+    // Body / Cloak
+    ctx.fillStyle = bodyColor;
+    ctx.fillRect(px - 11, py - 14, 22, 18);
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(px - 11, py - 14, 22, 18);
+
+    // Head (Soul Knight / Undertale Chibi Block)
+    ctx.fillStyle = headColor;
+    ctx.fillRect(px - 12, py - 32, 24, 19);
+    ctx.strokeRect(px - 12, py - 32, 24, 19);
+
+    // Eyes
+    const eyeX = facing > 0 ? px + 2 : px - 8;
+    ctx.fillStyle = '#090a0f';
+    ctx.fillRect(eyeX - 2, py - 25, 10, 6);
+    ctx.fillStyle = eyeColor;
+    ctx.fillRect(eyeX - 1, py - 24, 3, 4);
+    ctx.fillRect(eyeX + 4, py - 24, 3, 4);
+
+    // Carried Crate above head
+    if (carrying) {
+      const prod = PRODUCTS[carrying.prodIndex];
+      const boxY = py - 52;
+      ctx.fillStyle = '#d97706';
+      ctx.fillRect(px - 15, boxY, 30, 18);
+      ctx.strokeStyle = '#000';
+      ctx.strokeRect(px - 15, boxY, 30, 18);
+      ctx.fillStyle = prod.colorPrimary;
+      ctx.fillRect(px - 11, boxY + 4, 22, 6);
+      ctx.fillStyle = '#fff';
+      ctx.font = '7px "Press Start 2P"';
+      ctx.textAlign = 'center';
+      ctx.fillText(`${carrying.count}`, px, boxY + 15);
+    }
+  }
+
+  function drawEnvironment() {
+    // 1. Curb / Sidewalk (Left Delivery Zone X: 0..202)
+    ctx.fillStyle = '#27272a';
+    ctx.fillRect(0, 0, 202, VH);
+
+    // Sidewalk pavement tiles
+    ctx.strokeStyle = '#3f3f46';
+    ctx.lineWidth = 2;
+    for (let y = 60; y < VH; y += 48) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(196, y);
+      ctx.stroke();
+    }
+
+    // Delivery Zone Painted Box on Curb
+    ctx.strokeStyle = '#facc15';
+    ctx.setLineDash([6, 6]);
+    ctx.strokeRect(32, 115, 134, 345);
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(250, 204, 21, 0.25)';
+    ctx.font = '8px "Press Start 2P"';
+    ctx.textAlign = 'center';
+    ctx.fillText('ZONA ENTREGA', 99, 106);
+
+    // 2. Store Checkerboard Tile Floor (X: 202..VW)
+    const tileSize = 32;
+    for (let x = 202; x < VW; x += tileSize) {
+      for (let y = 64; y < VH; y += tileSize) {
+        const isAlt = ((Math.floor(x / tileSize) + Math.floor(y / tileSize)) % 2) === 0;
+        ctx.fillStyle = isAlt ? '#1e2235' : '#171a29';
+        ctx.fillRect(x, y, tileSize, tileSize);
+      }
+    }
+
+    // 3. Top North Wall (2.5D Back Wall with Undertale trim)
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(202, 0, VW - 202, 68);
+    ctx.fillStyle = '#334155';
+    ctx.fillRect(202, 56, VW - 202, 12);
+
+    // Store Neon Banner on North Wall
+    ctx.fillStyle = '#000';
+    ctx.fillRect(420, 12, 290, 36);
+    ctx.strokeStyle = state.upgrades.neonSign ? '#f472b6' : '#ffffff';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(420, 12, 290, 36);
+    ctx.font = '13px "Press Start 2P"';
+    ctx.fillStyle = state.upgrades.neonSign ? '#f472b6' : '#facc15';
+    ctx.textAlign = 'center';
+    ctx.fillText('★ UNDERMART 2.5D ★', 565, 36);
+
+    // 4. Dividing Store Wall at X = 202 (with entrance doorway Y: 250..360)
+    drawObliqueBlock(202, 155, 18, 175, 28, '#64748b', '#334155', '#090a0f');
+    drawObliqueBlock(202, 445, 18, 170, 28, '#64748b', '#334155', '#090a0f');
+
+    // Welcome Mat at Doorway
+    ctx.fillStyle = '#7c2d12';
+    ctx.fillRect(212, 275, 34, 62);
+    ctx.strokeStyle = '#f59e0b';
+    ctx.strokeRect(212, 275, 34, 62);
+  }
+
+  function render() {
+    ctx.clearRect(0, 0, VW, VH);
+
+    // 1. Background & Walls
+    drawEnvironment();
+
+    // 2. Collect all 2.5D entities for Y-Sorting (Painter's Algorithm)
+    const renderList = [];
+
+    // Shelves
+    state.shelves.forEach(s => {
+      renderList.push({ y: s.y, draw: () => drawShelf25D(s) });
+    });
+
+    // Checkout Counter
+    renderList.push({ y: state.checkout.y, draw: () => drawCheckout25D() });
+
+    // PC Desk
+    renderList.push({ y: state.pcDesk.y, draw: () => drawPCDesk25D() });
+
+    // Open/Closed Sign
+    renderList.push({ y: state.signPost.y, draw: () => drawSignPost25D() });
+
+    // Trash Can
+    renderList.push({ y: state.trashCan.y, draw: () => drawTrashCan25D() });
+
+    // Crates on floor
+    state.crates.forEach(c => {
+      renderList.push({ y: c.y, draw: () => drawCrate25D(c) });
+    });
+
+    // Restock Imp Helper (if purchased)
+    if (state.upgrades.restockImp) {
+      renderList.push({
+        y: state.imp.y,
+        draw: () => {
+          drawCharacterSprite(
+            state.imp.x,
+            state.imp.y,
+            state.imp.facing,
+            state.imp.walkFrame,
+            '#a855f7',
+            '#581c87',
+            '#fde047',
+            state.imp.carrying,
+            '👾'
+          );
+        }
+      });
+    }
+
+    // Customers
+    state.customers.forEach(c => {
+      renderList.push({
+        y: c.y,
+        draw: () => {
+          drawCharacterSprite(
+            c.x,
+            c.y,
+            c.facing,
+            c.walkFrame,
+            c.headColor,
+            c.bodyColor,
+            c.eyeColor,
+            null,
+            c.emoji
+          );
+          // Customer Patience Bar if waiting in queue
+          if (c.state === 'QUEUE') {
+            const pct = Math.max(0, c.patience / c.maxPatience);
+            ctx.fillStyle = '#000';
+            ctx.fillRect(c.x - 16, c.y - 46, 32, 6);
+            ctx.fillStyle = pct > 0.5 ? '#22c55e' : (pct > 0.25 ? '#facc15' : '#ef4444');
+            ctx.fillRect(c.x - 15, c.y - 45, Math.round(30 * pct), 4);
+          }
+          // Thought bubble above customer
+          if (c.thought) {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(c.x - 14, c.y - 68, 28, 20);
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(c.x - 14, c.y - 68, 28, 20);
+            ctx.font = '12px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(c.thought, c.x, c.y - 54);
+          }
+        }
+      });
+    });
+
+    // Player Character + Dash Afterimages
+    const p = state.player;
+    renderList.push({
+      y: p.y,
+      draw: () => {
+        // Dash ghosts
+        p.afterimages.forEach(ghost => {
+          ctx.save();
+          ctx.globalAlpha = ghost.alpha * 0.5;
+          drawCharacterSprite(ghost.x, ghost.y, ghost.facing, 0, '#38bdf8', '#0284c7', '#fff', null);
+          ctx.restore();
+        });
+        // Main Soul Knight Storekeeper Sprite (Red Scarf / Cyan Visor)
+        drawCharacterSprite(
+          p.x,
+          p.y,
+          p.facing,
+          p.walkFrame,
+          '#f8fafc',
+          '#e11d48',
+          '#38bdf8',
+          p.carrying
+        );
+      }
+    });
+
+    // Sort all entities back-to-front by Y coordinate
+    renderList.sort((a, b) => a.y - b.y);
+    renderList.forEach(item => item.draw());
+
+    // 3. Particles
+    state.particles.forEach(pt => {
+      ctx.fillStyle = pt.color;
+      ctx.fillRect(Math.round(pt.x), Math.round(pt.y), pt.size, pt.size);
+    });
+
+    // 4. Floating Damage/Money Numbers (Soul Knight style)
+    state.floatingTexts.forEach(ft => {
+      ctx.save();
+      ctx.font = `${Math.round(10 * ft.scale)}px "Press Start 2P"`;
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#000000';
+      ctx.fillText(ft.text, Math.round(ft.x) + 2, Math.round(ft.y) + 2);
+      ctx.fillStyle = ft.color;
+      ctx.fillText(ft.text, Math.round(ft.x), Math.round(ft.y));
+      ctx.restore();
+    });
+
+    // 5. Dynamic Afternoon/Sunset Lighting Tint Overlay
+    if (state.timeMinutes > 16 * 60) {
+      const progress = Math.min(1, (state.timeMinutes - 16 * 60) / (5 * 60));
+      ctx.fillStyle = `rgba(30, 18, 65, ${progress * 0.35})`;
+      ctx.fillRect(0, 0, VW, VH);
+    }
+  }
+
+  // ============================================================================
+  // 12. BOOTSTRAP GAME LOOP
+  // ============================================================================
+  let lastTime = performance.now();
+  function gameLoop(now) {
+    const dt = Math.min(0.05, (now - lastTime) / 1000);
+    lastTime = now;
+    update(dt);
+    render();
+    requestAnimationFrame(gameLoop);
+  }
+
+  window.onload = function() {
+    updateHUD();
+    requestAnimationFrame(gameLoop);
+  };
+})();
+</script>
 </body>
 </html>
